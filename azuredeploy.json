@@ -10,6 +10,13 @@
 			},
 			"defaultValue": "https://raw.githubusercontent.com/Microsoft/openshift-container-platform/master"
 		},
+		"_artifactsLocationSasToken": {
+			"type": "securestring",
+			"metadata": {
+				"description": "The sasToken required to access _artifactsLocation."
+			},
+			"defaultValue": ""
+		},
 		"customVhdOrGallery": {
 			"type": "string",
 			"defaultValue": "gallery",
@@ -330,7 +337,7 @@
 		"infraLbPublicIpDnsLabel": "[concat('infradns', uniqueString(concat(resourceGroup().id, 'infra')))]",
 		"openshiftMasterPublicIpDnsLabel": "[concat('masterdns', uniqueString(concat(resourceGroup().id, 'master')))]",
 		"persistentVolume1Type": "Standard_LRS",
-		
+
 		"masterLoadBalancerName": "[concat(variables('openshiftMasterHostname'), 'lb')]",
 		"masterPublicIpAddressId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('openshiftMasterPublicIpDnsLabel'))]",
 		"masterLbId": "[resourceId('Microsoft.Network/loadBalancers', variables('masterLoadBalancerName'))]",
@@ -339,7 +346,7 @@
 		"masterLbHttpProbeId": "[concat(variables('masterLbId'),'/probes/httpProbe')]",
 		"masterLb8443ProbeId": "[concat(variables('masterLbId'),'/probes/8443Probe')]",
 		"masterLbCockpitProbeId": "[concat(variables('masterLbId'),'/probes/cockpitProbe')]",
-		
+
 		"infraLoadBalancerName": "[concat(variables('openshiftInfraHostname'), 'lb')]",
 		"infraPublicIpAddressId": "[resourceId('Microsoft.Network/publicIPAddresses', variables('infraLbPublicIpDnsLabel'))]",
 		"infraLbId": "[resourceId('Microsoft.Network/loadBalancers', variables('infraLoadBalancerName'))]",
@@ -363,15 +370,15 @@
 		"singlequote": "'",
 		"customImageName": "[concat(parameters('customStorageAccount'), parameters('customOsDiskName'))]",
 		"sshKeyPath": "[concat('/home/', parameters('adminUsername'), '/.ssh/authorized_keys')]",
-		"bastionPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/bastionPrep.sh')]",
-		"nodePrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/nodePrep.sh')]",
-		"masterPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/masterPrep.sh')]",
+		"bastionPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/bastionPrep.sh', parameters('_artifactsLocationSasToken'))]",
+		"nodePrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/nodePrep.sh', parameters('_artifactsLocationSasToken'))]",
+		"masterPrepScriptUrl": "[concat(parameters('_artifactsLocation'), '/scripts/masterPrep.sh', parameters('_artifactsLocationSasToken'))]",
 		"bastionPrepScriptFileName": "bastionPrep.sh",
 		"nodePrepScriptFileName": "nodePrep.sh",
 		"masterPrepScriptFileName": "masterPrep.sh",
-		"clusterNodeDeploymentTemplateUrl": "[concat(parameters('_artifactsLocation'), '/nested/', parameters('customVhdOrGallery'), 'clusternode.json')]",
-		"basicDeploymentTemplateUrl": "[concat(parameters('_artifactsLocation'), '/nested/', parameters('customVhdOrGallery'), 'basic.json')]",
-		"openshiftDeploymentTemplateUrl": "[concat(parameters('_artifactsLocation'), '/nested/openshiftdeploy.json')]",
+		"clusterNodeDeploymentTemplateUrl": "[concat(parameters('_artifactsLocation'), '/nested/', parameters('customVhdOrGallery'), 'clusternode.json', parameters('_artifactsLocationSasToken'))]",
+		"basicDeploymentTemplateUrl": "[concat(parameters('_artifactsLocation'), '/nested/', parameters('customVhdOrGallery'), 'basic.json', parameters('_artifactsLocationSasToken'))]",
+		"openshiftDeploymentTemplateUrl": "[concat(parameters('_artifactsLocation'), '/nested/openshiftdeploy.json', parameters('_artifactsLocationSasToken'))]",
 		"vmSizesMap": {
 			"Standard_A4": {
 				"storageAccountType": "Standard_LRS",
@@ -683,8 +690,7 @@
 			}
 		}
 	},
-	"resources": [
-		{
+	"resources": [{
 			"apiVersion": "[variables('apiVersionNetwork')]",
 			"type": "Microsoft.Network/networkSecurityGroups",
 			"name": "[concat(variables('openshiftBastionHostname'), '-nsg')]",
@@ -1229,7 +1235,7 @@
 					}
 				}]
 			}
-		},	
+		},
 		{
 			"apiVersion": "[variables('apiVersionNetwork')]",
 			"type": "Microsoft.Network/loadBalancers/inboundNatRules",
@@ -1251,7 +1257,7 @@
 				"backendPort": 22,
 				"enableFloatingIP": false
 			}
-		},		
+		},
 		{
 			"type": "Microsoft.Network/loadBalancers",
 			"name": "[variables('infraLoadBalancerName')]",
@@ -1414,11 +1420,9 @@
 						"loadBalancerBackendAddressPools": [{
 							"id": "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.Network/loadBalancers/', variables('masterLoadBalancerName'), '/backendAddressPools/loadBalancerBackEnd')]"
 						}],
-						"loadBalancerInboundNatRules": [
-							{
-								"id": "[concat(variables('masterLbId'),'/inboundNatRules/SSH-', variables('openshiftMasterHostname'), copyIndex())]"
-							}
-						]
+						"loadBalancerInboundNatRules": [{
+							"id": "[concat(variables('masterLbId'),'/inboundNatRules/SSH-', variables('openshiftMasterHostname'), copyIndex())]"
+						}]
 					}
 				}],
 				"networkSecurityGroup": {
@@ -1902,6 +1906,9 @@
 				"parameters": {
 					"_artifactsLocation": {
 						"value": "[parameters('_artifactsLocation')]"
+					},
+					"_artifactsLocationSasToken": {
+						"value": "[parameters('_artifactsLocationSasToken')]"
 					},
 					"apiVersionCompute": {
 						"value": "[variables('apiVersionCompute')]"
